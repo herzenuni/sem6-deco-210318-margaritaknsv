@@ -1,26 +1,53 @@
-  import functools
-
-def once(func):
-	@functools.wraps(func)
-	def inner(*args, **kwargs):
-		if not inner.called:
-			inner.result = func(*args, **kwargs)
-			inner.called = True
-
-		return inner.result
-
-	inner.called = False
-	return inner
+import hashlib
+import functools
 
 
-@once
-def initialize_settings():
-  print("Settings initialized")
-  z=0
-  z+=1
-  return z
+@functools.singledispatch
+def hash(arg):
+    type_name = type(arg).__name__
+    assert False, "Неподдерживаемый тип объекта: " + type_name
 
 
-print(initialize_settings())
-print('-----------')
-print(initialize_settings())
+@hash.register(str)
+def _(arg):
+    result = hashlib.md5(bytes(arg, 'utf-8')).hexdigest()
+    return result
+
+
+@hash.register(list)
+def _(arg):
+    result = type(arg)()
+    for i in arg:
+        result.append(hashlib.md5(bytes(i, 'utf-8')).hexdigest())
+    return result
+
+
+@hash.register(tuple)
+def _(arg):
+    result = []
+    for i in arg:
+        result.append(hashlib.md5(bytes(i, 'utf-8')).hexdigest())
+    return tuple(result)
+
+
+@hash.register(set)
+def _(arg):
+    result = []
+    for i in arg:
+        result.append(hashlib.md5(bytes(i, 'utf-8')).hexdigest())
+    return set(result)
+
+
+@hash.register(dict)
+def _(arg):
+    keys = arg.keys()
+    values = []
+    for i in arg.values():
+        values.append(hashlib.md5(bytes(i, 'utf-8')).hexdigest())
+    result = dict.fromkeys(keys, None)
+    result.update(zip(keys, values))
+    return result
+
+
+print(hash('Done'))
+print(hash({'Hello': 'Goodbye', 'Hi': 'Bye'}))
